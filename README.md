@@ -74,6 +74,19 @@ Anbindung über Zigbee2MQTT.
 
 **Warum zwei Sensoren?** Tagsüber zählt, *ob jemand da ist* – dafür ist das Radar zuverlässiger. Nachts soll der Reiniger nur hochdrehen, wenn sich jemand *bewegt*, nicht weil jemand auf dem Sofa schläft.
 
+### Alle verwendeten Sensoren auf einen Blick
+
+| Sensor | Gerät / Herkunft | Geräteklasse | Einheit / Werte | Verwendet in |
+|---|---|---|---|---|
+| `sensor.airfresh_pm25` | Levoit Core 300S (VeSync) | `pm25` | µg/m³ | Steuerung: Ein-/Ausschalten, Stufe 3 |
+| `sensor.airfresh_luftqualitat` | Levoit Core 300S (VeSync) | – | Text, z. B. `good`, `poor` | Dashboard |
+| `sensor.airfresh_restlebensdauer_des_filters` | Levoit Core 300S (VeSync) | – | % | Filterwechsel-Meldung |
+| `binary_sensor.raum_wohnzimmer_presence` | Aqara FP300, Radar (Zigbee2MQTT) | `occupancy` | `on` = belegt, `off` = frei | Steuerung: Stufe 1 vs. 2/3 |
+| `binary_sensor.raum_wohnzimmer_pir_detection` | Aqara FP300, PIR (Zigbee2MQTT) | `motion` | `on` = Bewegung, `off` = keine | Steuerung: Nacht-Boost |
+| `sensor.luftreiniger_wohnzimmer_status` | Template-Helfer | – | Text, z. B. „Stufe 1“, „Nachtmodus“ | Anzeige, frei verwendbar |
+
+Gesteuert wird nur ein Aktor: `fan.airfresh`. Die übrigen Sensoren der beiden Geräte (z. B. Temperatur, Luftfeuchte und Helligkeit des FP300) werden hier nicht verwendet.
+
 ---
 
 ## 4. Integrationen
