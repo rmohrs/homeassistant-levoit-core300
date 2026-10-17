@@ -1,0 +1,72 @@
+# Helfer (Helpers) für die Luftreiniger-Steuerung im Wohnzimmer.
+#
+# Diese Datei ist eine Übersicht zum Nachbauen, KEINE Datei für configuration.yaml.
+# Alle Helfer wurden in der Oberfläche angelegt:
+#   Einstellungen -> Geräte & Dienste -> Helfer -> "Helfer erstellen"
+# Die Felder unten entsprechen den Eingabefeldern im jeweiligen Formular.
+
+input_boolean:
+  luftreiniger_wohnzimmer_automatik:
+    name: Luftreiniger Wohnzimmer Automatik
+    icon: mdi:air-purifier
+    bereich: Wohnzimmer
+    # Schalter. "An" = Automatik steuert den Reiniger, "Aus" = Handbetrieb.
+
+input_number:
+  luftreiniger_wohnzimmer_einschaltschwelle:
+    name: Luftreiniger Wohnzimmer Einschaltschwelle
+    icon: mdi:arrow-up-bold
+    bereich: Wohnzimmer
+    min: 5
+    max: 150
+    step: 1
+    unit_of_measurement: "µg/m³"
+    mode: box            # Eingabefeld statt Schieberegler
+    startwert: 25        # nach dem Anlegen einmal von Hand eingetragen
+
+  luftreiniger_wohnzimmer_ausschaltschwelle:
+    name: Luftreiniger Wohnzimmer Ausschaltschwelle
+    icon: mdi:arrow-down-bold
+    bereich: Wohnzimmer
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "µg/m³"
+    mode: box
+    startwert: 12
+
+  luftreiniger_wohnzimmer_schwelle_stufe_3:
+    name: Luftreiniger Wohnzimmer Schwelle Stufe 3
+    icon: mdi:alert
+    bereich: Wohnzimmer
+    min: 10
+    max: 300
+    step: 1
+    unit_of_measurement: "µg/m³"
+    mode: box
+    startwert: 55
+
+timer:
+  luftreiniger_wohnzimmer_nacht_boost:
+    name: Luftreiniger Wohnzimmer Nacht-Boost
+    icon: mdi:timer-outline
+    bereich: Wohnzimmer
+    duration: "00:20:00"
+    restore: true        # läuft nach einem Neustart von Home Assistant weiter
+
+# Template-Sensor (Helfer-Typ "Template" -> "Template-Sensor")
+template_sensor:
+  name: Luftreiniger Wohnzimmer Status
+  entity_id: sensor.luftreiniger_wohnzimmer_status
+  icon: mdi:air-purifier
+  bereich: Wohnzimmer
+  zustandsvorlage: >-
+    {% set f = 'fan.airfresh' %}
+    {% if is_state(f, ['unavailable','unknown']) %}Nicht erreichbar
+    {% elif is_state('input_boolean.luftreiniger_wohnzimmer_automatik','off') %}Manuell{% if is_state(f,'on') %} – läuft{% else %} – aus{% endif %}
+    {% elif is_state(f,'off') %}Aus – Luft sauber
+    {% elif is_state_attr(f,'preset_mode','sleep') %}Nachtmodus
+    {% elif is_state_attr(f,'preset_mode','auto') %}Auto
+    {% else %}Stufe {{ ((state_attr(f,'percentage') | int(0)) / 33.3) | round(0) | int }}{% endif %}
+  # Hinweis: In Home Assistant steht die Vorlage in einer einzigen Zeile ohne
+  # Zeilenumbrüche. Hier ist sie nur zur besseren Lesbarkeit umgebrochen.

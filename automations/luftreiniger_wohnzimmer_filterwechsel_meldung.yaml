@@ -1,0 +1,20 @@
+# Exportiert aus Home Assistant am 18.10.2026.
+# Zum Nachbauen: Einstellungen -> Automatisierungen -> Neu -> Drei-Punkte-Menue -> 'In YAML bearbeiten' -> diesen Inhalt einfuegen.
+
+id: '1792275573195'
+alias: Luftreiniger Wohnzimmer Filterwechsel Meldung
+description: Meldet per WhatsApp, wenn die Restlebensdauer des Filters im Levoit Core 300S (Airfresh) auf 5 % oder weniger fällt. Guard gegen Fehlauslösung nach Neustart oder Cloud-Aussetzer (unavailable).
+mode: single
+triggers:
+  - trigger: numeric_state
+    entity_id: sensor.airfresh_restlebensdauer_des_filters
+    below: 6
+conditions:
+  - condition: template
+    value_template: '{{ trigger.platform == ''numeric_state'' and trigger.from_state is not none and is_number(trigger.from_state.state) }}'
+actions:
+  - action: notify.whatsapp
+    continue_on_error: true
+    data:
+      title: 'Luftreiniger: Filter wechseln'
+      message: Der Filter im Levoit Core 300 (Wohnzimmer) hat nur noch {{ states('sensor.airfresh_restlebensdauer_des_filters') }} % Restlebensdauer. Bitte Ersatzfilter bereitlegen und wechseln, danach den Filterzähler am Gerät bzw. in der VeSync-App zurücksetzen.

@@ -1,0 +1,22 @@
+# Abschnitt 'Luftreiniger' im Dashboard 'Wohnbereich' (Ansicht vom Typ 'Abschnitte').
+# Zum Nachbauen: Dashboard bearbeiten -> Abschnitt hinzufuegen -> Drei-Punkte-Menue -> 'In YAML bearbeiten'.
+
+type: grid
+cards:
+  - type: heading
+    heading: Luftreiniger
+    icon: mdi:air-purifier
+  - type: tile
+    entity: sensor.airfresh_luftqualitat
+    name: Luftqualität
+    icon: mdi:weather-hazy
+    grid_options:
+      columns: 12
+  - type: tile
+    entity: fan.airfresh
+    name: Levoit Core 300S
+    features:
+      - type: fan-speed
+    grid_options:
+      columns: 12
+      rows: 2

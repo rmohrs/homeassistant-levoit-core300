@@ -1,0 +1,243 @@
+# Exportiert aus Home Assistant am 18.10.2026.
+# Zum Nachbauen: Einstellungen -> Automatisierungen -> Neu -> Drei-Punkte-Menue -> 'In YAML bearbeiten' -> diesen Inhalt einfuegen.
+
+id: '1792274088496'
+alias: Luftreiniger Wohnzimmer Steuerung
+description: 'Steuert den Levoit Core 300S (fan.airfresh) nach PM2,5: Einschalten über Einschaltschwelle, Ausschalten unter Ausschaltschwelle. 00–06 Uhr Nachtmodus, bei Belegung Stufe 1, ohne Belegung Stufe 2 (über Schwelle Stufe 3: Stufe 3). Abschaltbar über input_boolean.luftreiniger_wohnzimmer_automatik. Nachts bei schlechter Luft und Bewegung (PIR) 20 min Stufe 1 über timer.luftreiniger_wohnzimmer_nacht_boost, PIR wird jede Minute geprüft; solange er Bewegung meldet, läuft der Timer neu.'
+mode: restart
+triggers:
+  - trigger: state
+    entity_id: sensor.airfresh_pm25
+    id: pm
+  - trigger: occupancy.detected
+    target:
+      entity_id: binary_sensor.raum_wohnzimmer_presence
+    id: belegt
+  - trigger: occupancy.cleared
+    target:
+      entity_id: binary_sensor.raum_wohnzimmer_presence
+    options:
+      for: 00:05:00
+    id: frei
+  - trigger: time
+    at: 00:00:00
+    id: nacht_start
+  - trigger: time
+    at: 06:00:00
+    id: nacht_ende
+  - trigger: state
+    entity_id: input_boolean.luftreiniger_wohnzimmer_automatik
+    to: 'on'
+    id: automatik_an
+  - trigger: state
+    entity_id:
+      - input_number.luftreiniger_wohnzimmer_einschaltschwelle
+      - input_number.luftreiniger_wohnzimmer_ausschaltschwelle
+      - input_number.luftreiniger_wohnzimmer_schwelle_stufe_3
+    id: schwellen
+  - trigger: homeassistant
+    event: start
+    id: start
+  - trigger: motion.detected
+    target:
+      entity_id: binary_sensor.raum_wohnzimmer_pir_detection
+    id: bewegung
+  - trigger: timer.finished
+    target:
+      entity_id: timer.luftreiniger_wohnzimmer_nacht_boost
+    id: boost_ende
+  - trigger: time_pattern
+    minutes: /1
+    id: minutentakt
+conditions:
+  - condition: state
+    entity_id: input_boolean.luftreiniger_wohnzimmer_automatik
+    state: 'on'
+  - condition: state
+    entity_id: fan.airfresh
+    state:
+      - 'on'
+      - 'off'
+  - condition: not
+    conditions:
+      - condition: state
+        entity_id: sensor.airfresh_pm25
+        state:
+          - unavailable
+          - unknown
+actions:
+  - choose:
+      - alias: Luft belastet – reinigen
+        conditions:
+          - condition: or
+            conditions:
+              - condition: numeric_state
+                entity_id: sensor.airfresh_pm25
+                above: input_number.luftreiniger_wohnzimmer_einschaltschwelle
+              - condition: and
+                conditions:
+                  - condition: state
+                    entity_id: fan.airfresh
+                    state: 'on'
+                  - condition: numeric_state
+                    entity_id: sensor.airfresh_pm25
+                    above: input_number.luftreiniger_wohnzimmer_ausschaltschwelle
+        sequence:
+          - choose:
+              - alias: Nachtmodus 00–06 Uhr (mit Bewegungs-Boost)
+                conditions:
+                  - condition: time
+                    after: 00:00:00
+                    before: 06:00:00
+                sequence:
+                  - alias: PIR meldet Bewegung – Boost-Timer (neu) starten
+                    if:
+                      - condition: state
+                        entity_id: binary_sensor.raum_wohnzimmer_pir_detection
+                        state: 'on'
+                    then:
+                      - action: timer.start
+                        target:
+                          entity_id: timer.luftreiniger_wohnzimmer_nacht_boost
+                  - choose:
+                      - alias: Boost aktiv – Stufe 1
+                        conditions:
+                          - condition: state
+                            entity_id: timer.luftreiniger_wohnzimmer_nacht_boost
+                            state: active
+                        sequence:
+                          - if:
+                              - condition: or
+                                conditions:
+                                  - condition: state
+                                    entity_id: fan.airfresh
+                                    state: 'off'
+                                  - condition: not
+                                    conditions:
+                                      - condition: state
+                                        entity_id: fan.airfresh
+                                        attribute: percentage
+                                        state: 33
+                                  - condition: state
+                                    entity_id: fan.airfresh
+                                    attribute: preset_mode
+                                    state:
+                                      - sleep
+                                      - auto
+                            then:
+                              - action: fan.set_percentage
+                                target:
+                                  entity_id: fan.airfresh
+                                data:
+                                  percentage: 33
+                    default:
+                      - alias: Sleep-Modus
+                        if:
+                          - condition: not
+                            conditions:
+                              - condition: state
+                                entity_id: fan.airfresh
+                                attribute: preset_mode
+                                state: sleep
+                        then:
+                          - action: fan.set_preset_mode
+                            target:
+                              entity_id: fan.airfresh
+                            data:
+                              preset_mode: sleep
+              - alias: Raum belegt – Stufe 1
+                conditions:
+                  - condition: state
+                    entity_id: binary_sensor.raum_wohnzimmer_presence
+                    state: 'on'
+                sequence:
+                  - if:
+                      - condition: or
+                        conditions:
+                          - condition: state
+                            entity_id: fan.airfresh
+                            state: 'off'
+                          - condition: not
+                            conditions:
+                              - condition: state
+                                entity_id: fan.airfresh
+                                attribute: percentage
+                                state: 33
+                          - condition: state
+                            entity_id: fan.airfresh
+                            attribute: preset_mode
+                            state:
+                              - sleep
+                              - auto
+                    then:
+                      - action: fan.set_percentage
+                        target:
+                          entity_id: fan.airfresh
+                        data:
+                          percentage: 33
+              - alias: Raum frei, stark belastet – Stufe 3
+                conditions:
+                  - condition: numeric_state
+                    entity_id: sensor.airfresh_pm25
+                    above: input_number.luftreiniger_wohnzimmer_schwelle_stufe_3
+                sequence:
+                  - if:
+                      - condition: or
+                        conditions:
+                          - condition: state
+                            entity_id: fan.airfresh
+                            state: 'off'
+                          - condition: not
+                            conditions:
+                              - condition: state
+                                entity_id: fan.airfresh
+                                attribute: percentage
+                                state: 100
+                          - condition: state
+                            entity_id: fan.airfresh
+                            attribute: preset_mode
+                            state:
+                              - sleep
+                              - auto
+                    then:
+                      - action: fan.set_percentage
+                        target:
+                          entity_id: fan.airfresh
+                        data:
+                          percentage: 100
+            default:
+              - alias: Raum frei – Stufe 2
+                if:
+                  - condition: or
+                    conditions:
+                      - condition: state
+                        entity_id: fan.airfresh
+                        state: 'off'
+                      - condition: not
+                        conditions:
+                          - condition: state
+                            entity_id: fan.airfresh
+                            attribute: percentage
+                            state: 66
+                      - condition: state
+                        entity_id: fan.airfresh
+                        attribute: preset_mode
+                        state:
+                          - sleep
+                          - auto
+                then:
+                  - action: fan.set_percentage
+                    target:
+                      entity_id: fan.airfresh
+                    data:
+                      percentage: 66
+    default:
+      - alias: Luft sauber – ausschalten
+        if:
+          - condition: state
+            entity_id: fan.airfresh
+            state: 'on'
+        then:
+          - action: fan.turn_off
+            target:
+              entity_id: fan.airfresh
