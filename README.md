@@ -2,6 +2,9 @@
 
 Automatische Steuerung des Levoit Core 300S nach Feinstaub (PM2,5), Raumbelegung und Uhrzeit, plus WhatsApp-Meldung beim Filterwechsel.
 
+> # ⚠️ Kein Support bei Problemen
+> ## Diese Anleitung wird so bereitgestellt, wie sie ist. Nutzung auf eigene Verantwortung. Fragen, Fehlermeldungen oder Hilfe bei der Einrichtung werden nicht beantwortet.
+
 Die Anleitung setzt voraus, dass du dich in Home Assistant schon etwas auskennst: Du weißt, was Entitäten, Helfer und Automationen sind, und hast schon einmal eine Automation im Editor angelegt.
 
 ---
